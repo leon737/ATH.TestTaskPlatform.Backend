@@ -30,6 +30,7 @@ namespace ATH.TestTaskPlatform.Backend
             GlobalConfiguration.Configure(WebApiConfig.Register);
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
+            builder.RegisterWebApiFilterProvider(GlobalConfiguration.Configuration);
 
             GlobalConfiguration.Configuration.Formatters.Remove(GlobalConfiguration.Configuration.Formatters.XmlFormatter);
         }

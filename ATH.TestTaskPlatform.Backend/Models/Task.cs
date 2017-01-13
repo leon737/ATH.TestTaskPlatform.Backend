@@ -1,6 +1,7 @@
 ﻿using System;
+using ATH.TestTaskPlatform.Backend.Domain.Models;
 
-namespace ATH.TestTaskPlatform.Backend.Domain.Models
+namespace ATH.TestTaskPlatform.Backend.Models
 {
     /// <summary> Задача на scrum доске </summary>
     public class Task
@@ -22,8 +23,5 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Models
 
         /// <summary> Идентификатор исполнителя </summary>
         public Guid? ExecutorId { get; set; }
-
-        /// <summary> Идентификатор scope </summary>
-        public Guid ScopeId { get; set; }
     }
 }

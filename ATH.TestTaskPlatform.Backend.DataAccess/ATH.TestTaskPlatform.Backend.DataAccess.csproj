@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataContexts\DataContext.cs" />
+    <Compile Include="DataContexts\Session.cs" />
     <Compile Include="Mappings\TaskMapping.cs" />
     <Compile Include="Mappings\UserMapping.cs" />
     <Compile Include="Mappings\ScopeMapping.cs" />

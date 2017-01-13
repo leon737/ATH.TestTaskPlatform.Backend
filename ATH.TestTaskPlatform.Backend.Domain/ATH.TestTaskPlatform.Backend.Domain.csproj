@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contexts\ISession.cs" />
     <Compile Include="Models\Scope.cs" />
     <Compile Include="Models\Task.cs" />
     <Compile Include="Models\TaskStatuses.cs" />

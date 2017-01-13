@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using ATH.TestTaskPlatform.Backend.DataAccess.DataContexts;
 using ATH.TestTaskPlatform.Backend.Domain.Models;
 using ATH.TestTaskPlatform.Backend.Domain.Repositories;
+using AutoMapper;
 using Functional.Fluent;
 using Functional.Fluent.Extensions;
 using Functional.Fluent.MonadicTypes;
@@ -14,8 +16,14 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
     /// <summary> Репозиторий <see cref="Task"/> </summary>
     public class TaskRepository : RepositoryBase, ITaskRepository
     {
+
+        private readonly IMapper _mapper;
+
         /// <summary> Репозиторий <see cref="Task"/> </summary>
-        public TaskRepository(DataContext context) : base(context) { }
+        public TaskRepository(DataContext context, IMapper mapper) : base(context)
+        {
+            _mapper = mapper;
+        }
 
         /// <summary> Возвращает <see cref="Task"/> по идентификатору </summary>
         public Result<Task> ById(Guid taskId) => Result.SuccessIfNotNull(Context.Tasks.Find(taskId));
@@ -27,8 +35,7 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
         public IReadOnlyList<Task> ByExecutor(Guid? executorId) => Context.Tasks.Where(x => x.ExecutorId == executorId).AsReadOnlyList();
 
         /// <summary> Удаляет <see cref="Task"/> </summary>
-        public Result<Unit> Delete(Guid taskId) => 
-            ById(taskId).Success(t =>
+        public Result<Unit> Delete(Guid taskId) => ById(taskId).Success(t =>
         {
             Context.Tasks.Remove(t);
             return Result.Success();
@@ -37,7 +44,7 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
         /// <summary> Обновляет <see cref="Task"/> </summary>
         public Result<Unit> Update(Task task) => ById(task.Id).Success(t =>
         {
-            Context.Tasks.Attach(task);
+            _mapper.Map(task, t);
             return Result.Success();
         });
 
