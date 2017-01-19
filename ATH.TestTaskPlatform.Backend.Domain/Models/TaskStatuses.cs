@@ -1,7 +1,7 @@
 ﻿namespace ATH.TestTaskPlatform.Backend.Domain.Models
 {
 
-    /// <summary> Статусы задач на scrum доске </summary>
+    /// <summary> Statuses of scrum board's tasks</summary>
     public enum TaskStatuses
     {
         New = 1,

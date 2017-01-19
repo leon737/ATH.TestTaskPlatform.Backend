@@ -6,14 +6,14 @@ using Functional.Fluent.MonadicTypes;
 namespace ATH.TestTaskPlatform.Backend.Domain.Repositories
 {
 
-    /// <summary> Репозиторий <see cref="User"/> </summary>
+    /// <summary> The repository <see cref="User"/> </summary>
     public interface IUserRepository
     {
-        
-        /// <summary> Возвращает <see cref="User"/> по идентификатору </summary>
+
+        /// <summary> Gets <see cref="User"/> by identitifer </summary>
         Result<User> ById(Guid userId);
 
-        /// <summary> Возвращает список <see cref="User"/> </summary>
+        /// <summary> Returns the list of <see cref="User"/> </summary>
         IReadOnlyList<User> GetAll();
     }
 }

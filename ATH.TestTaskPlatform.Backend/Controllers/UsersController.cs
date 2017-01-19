@@ -21,6 +21,10 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             _mapper = mapper;
         }
 
+
+        /// <summary> Retrieves the list of users. </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <returns>The list of users</returns>
         [HttpGet]
         [Route("get/{scopeId}")]
         public IEnumerable<User> Get(Guid scopeId)

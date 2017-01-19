@@ -23,6 +23,12 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Returns the given task's data
+        /// </summary>
+        /// <param name="scopeId">You private token</param>
+        /// <param name="taskId">The given task identitifer</param>
+        /// <returns>The task's data</returns>
         [HttpGet]
         [Route("get/{scopeId}/{taskId}")]
         public Task GetById(Guid scopeId, Guid taskId)
@@ -33,6 +39,12 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             }));
         }
 
+        /// <summary>
+        /// Retrieves the list of tasks in given status
+        /// </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <param name="status">The given status</param>
+        /// <returns>The list of tasks</returns>
         [HttpGet]
         [Route("bystatus/{scopeId}/{status}")]
         public IEnumerable<Task> GetByStatus(Guid scopeId, TaskStatuses status)
@@ -40,6 +52,12 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             return _mapper.Map<IEnumerable<Domain.Models.Task>, IEnumerable<Task>>(_taskService.ByStatus(status, scopeId));
         }
 
+        /// <summary>
+        /// Retrieves the list of tasks assigned to given executor
+        /// </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <param name="executorId">The given executor identifier (or null for unasigned)</param>
+        /// <returns>The list of tasks</returns>
         [HttpGet]
         [Route("byexecutor/{scopeId}/{executorId}")]
         public IEnumerable<Task> GetByExecutor(Guid scopeId, Guid? executorId)
@@ -47,7 +65,11 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             return _mapper.Map<IEnumerable<Domain.Models.Task>, IEnumerable<Task>>(_taskService.ByExecutor(executorId, scopeId));
         }
 
-        //// POST api/tasks
+        /// <summary>
+        /// Updates the given task's data
+        /// </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <param name="value">The updated task's data</param>
         [HttpPost]
         [Route("{scopeId}")]
         public void Post(Guid scopeId, [FromBody]Task value)
@@ -59,7 +81,11 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
                 throw new AccessViolationException();
         }
 
-        ///PUT api/tasks
+        /// <summary>
+        /// Adds new task
+        /// </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <param name="value">The new task's data</param>
         public void Put(Guid scopeId, [FromBody]Task value)
         {
             var domain = _mapper.Map<Task, Domain.Models.Task>(value);
@@ -67,7 +93,11 @@ namespace ATH.TestTaskPlatform.Backend.Controllers
             _taskService.Create(domain);
         }
 
-        /// DELETE api/users/5
+        /// <summary>
+        /// Deletes the given task
+        /// </summary>
+        /// <param name="scopeId">Your private token</param>
+        /// <param name="taskId">The given task identifier</param>
         [Route("{scopeId}/{taskId}")]
         public void Delete(Guid scopeId, Guid taskId)
         {

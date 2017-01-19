@@ -6,7 +6,7 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Contexts
 {
     public interface ISession
     {
-        /// <summary> Сохраняет изменения в хранилище данных </summary>
+        /// <summary> Saves changes into data storage </summary>
         Result<Unit> SaveChanges();
     }
 }

@@ -6,25 +6,25 @@ using Functional.Fluent.MonadicTypes;
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Repositories
 {
-    /// <summary> Репозиторий <see cref="Task"/> </summary>
+    /// <summary> The repository for <see cref="Task"/> </summary>
     public interface ITaskRepository
     {
-        /// <summary> Возвращает <see cref="Task"/> по идентификатору </summary>
+        /// <summary> Gets <see cref="Task"/> by identifier </summary>
         Result<Task> ById(Guid taskId);
 
-        /// <summary> Возвращает список <see cref="Task"/> с выборкой по полю Статус /> </summary>
+        /// <summary> Returns the list of <see cref="Task"/> filtered by status </summary>
         IReadOnlyList<Task> ByStatus(TaskStatuses status);
 
-        /// <summary> Возвращает список <see cref="Task"/> с выборкой по полю Исполнитель /> </summary>
+        /// <summary> Returns the list <see cref="Task"/> filtered by executor </summary>
         IReadOnlyList<Task> ByExecutor(Guid? executorId);
 
-        /// <summary> Удаляет <see cref="Task"/> </summary>
+        /// <summary> Deletes <see cref="Task"/> </summary>
         Result<Unit> Delete(Guid taskId);
 
-        /// <summary> Обновляет <see cref="Task"/> </summary>
+        /// <summary> Updates <see cref="Task"/> </summary>
         Result<Unit> Update(Task task);
 
-        /// <summary> Создает <see cref="Task"/> </summary>
+        /// <summary> Creates new <see cref="Task"/> </summary>
         Result<Unit> Create(Task task);
     }
 }

@@ -4,10 +4,10 @@ using ATH.TestTaskPlatform.Backend.Domain.Models;
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Services
 {
-    /// <summary> Сервис работы с <see cref="User"/> </summary>
+    /// <summary> Service for processing objects of type <see cref="User"/> </summary>
     public interface IUserService
     {
-        /// <summary> Возвращает список всех исполнителей </summary>
+        /// <summary> Returns the list of all executors, <seealso cref="User"/> </summary>
         IReadOnlyList<User> GetAll(Guid scopeId);
     }
 }

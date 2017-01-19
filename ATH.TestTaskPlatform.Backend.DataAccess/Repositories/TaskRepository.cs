@@ -13,42 +13,42 @@ using Functional.Fluent.Helpers;
 
 namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
 {
-    /// <summary> Репозиторий <see cref="Task"/> </summary>
+    /// <summary> The repository for <see cref="Task"/> </summary>
     public class TaskRepository : RepositoryBase, ITaskRepository
     {
 
         private readonly IMapper _mapper;
 
-        /// <summary> Репозиторий <see cref="Task"/> </summary>
+        /// <summary> The repository for <see cref="Task"/> </summary>
         public TaskRepository(DataContext context, IMapper mapper) : base(context)
         {
             _mapper = mapper;
         }
 
-        /// <summary> Возвращает <see cref="Task"/> по идентификатору </summary>
+        /// <summary> Gets <see cref="Task"/> by identifier </summary>
         public Result<Task> ById(Guid taskId) => Result.SuccessIfNotNull(Context.Tasks.Find(taskId));
 
-        /// <summary> Возвращает список <see cref="Task"/> с выборкой по полю Статус /> </summary>
+        /// <summary> Returns the list of <see cref="Task"/> filtered by status </summary>
         public IReadOnlyList<Task> ByStatus(TaskStatuses status) => Context.Tasks.Where(x => x.Status == (int)status).AsReadOnlyList();
 
-        /// <summary> Возвращает список <see cref="Task"/> с выборкой по полю Исполнитель /> </summary>
+        /// <summary> Returns the list <see cref="Task"/> filtered by executor </summary>
         public IReadOnlyList<Task> ByExecutor(Guid? executorId) => Context.Tasks.Where(x => x.ExecutorId == executorId).AsReadOnlyList();
 
-        /// <summary> Удаляет <see cref="Task"/> </summary>
+        /// <summary> Deletes <see cref="Task"/> </summary>
         public Result<Unit> Delete(Guid taskId) => ById(taskId).Success(t =>
         {
             Context.Tasks.Remove(t);
             return Result.Success();
         });
 
-        /// <summary> Обновляет <see cref="Task"/> </summary>
+        /// <summary> Updates <see cref="Task"/> </summary>
         public Result<Unit> Update(Task task) => ById(task.Id).Success(t =>
         {
             _mapper.Map(task, t);
             return Result.Success();
         });
 
-        /// <summary> Создает <see cref="Task"/> </summary>
+        /// <summary> Creates new <see cref="Task"/> </summary>
         public Result<Unit> Create(Task task)
         {
             Context.Tasks.Add(task);

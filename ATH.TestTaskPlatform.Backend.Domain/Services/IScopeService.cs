@@ -4,10 +4,10 @@ using Functional.Fluent.MonadicTypes;
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Services
 {
-    /// <summary> Сервис работы с <see cref="Scope"/> </summary>
+    /// <summary> Service for processing objects of type <see cref="Scope"/> </summary>
     public interface IScopeService
     {
-        /// <summary> Возвращает <see cref="Scope"/> по идентификатору </summary>
+        /// <summary> Gets <see cref="Scope"/> by identifier </summary>
         Result<Scope> ById(Guid scopeId);
     }
 }

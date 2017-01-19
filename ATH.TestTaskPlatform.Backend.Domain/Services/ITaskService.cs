@@ -6,25 +6,25 @@ using Functional.Fluent.MonadicTypes;
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Services
 {
-    /// <summary> Сервис работы с <see cref="Task"/> </summary>
+    /// <summary>Service for processing objects of type  <see cref="Task"/> </summary>
     public interface ITaskService
     {
-        /// <summary> Возвращает список <see cref="Task"/> по статусу </summary>
+        /// <summary> Returns the list of <see cref="Task"/> filtered by status </summary>
         IReadOnlyList<Task> ByStatus(TaskStatuses taskStatus, Guid scopeId);
 
-        /// <summary> Возвращает список <see cref="Task"/> по исполнителю </summary>
+        /// <summary> Returns the list of <see cref="Task"/> filtered by executor </summary>
         IReadOnlyList<Task> ByExecutor(Guid? executorId, Guid scopeId);
 
-        /// <summary> Возвращает <see cref="Task"/> по идентификатору </summary>
+        /// <summary> Gets <see cref="Task"/> by identifier </summary>
         Result<Task> ById(Guid taskId, Guid scopeId);
 
-        /// <summary> Удаляет <see cref="Task"/> </summary>
+        /// <summary> Deletes <see cref="Task"/> </summary>
         Result<Unit> Delete(Guid taskId, Guid scopeId);
 
-        /// <summary> Обновляет <see cref="Task"/> </summary>
+        /// <summary> Updates <see cref="Task"/> </summary>
         Result<Unit> Update(Task task);
 
-        /// <summary> Создает <see cref="Task"/> </summary>
+        /// <summary> Creates new <see cref="Task"/> </summary>
         Result<Unit> Create(Task task);
     }
 }

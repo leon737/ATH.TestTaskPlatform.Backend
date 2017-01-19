@@ -3,13 +3,13 @@
 namespace ATH.TestTaskPlatform.Backend.Models
 {
 
-    /// <summary> Пользователь на scrum доске </summary>
+    /// <summary> Scrum board's user </summary>
     public class User
     {
-        /// <summary> Идентификатор </summary>
+        /// <summary> Identifier of the user </summary>
         public Guid Id { get; set; }
         
-        /// <summary> Имя </summary>
+        /// <summary> Full name of the user </summary>
         public string Name { get; set; }
         
     }

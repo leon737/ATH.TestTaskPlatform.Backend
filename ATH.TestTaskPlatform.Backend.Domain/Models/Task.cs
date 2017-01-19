@@ -2,28 +2,28 @@
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Models
 {
-    /// <summary> Задача на scrum доске </summary>
+    /// <summary> Scrum board's task </summary>
     public class Task
     {
-        /// <summary> Идентификатор </summary>
+        /// <summary> Identifier </summary>
         public Guid Id { get; set; }
 
-        /// <summary> Наименование </summary>
+        /// <summary> Name </summary>
         public string Name { get; set; }
 
-        /// <summary> Описание задачи </summary>
+        /// <summary> Description </summary>
         public string Description { get; set; }
 
-        /// <summary> Трудозатраты </summary>
+        /// <summary> Workload </summary>
         public int Workload { get; set; }
 
-        /// <summary> Статус <see cref="TaskStatuses"/> </summary>
+        /// <summary> Status corresponding <see cref="TaskStatuses"/> </summary>
         public int Status { get; set; }
 
-        /// <summary> Идентификатор исполнителя </summary>
+        /// <summary> Executor identifier </summary>
         public Guid? ExecutorId { get; set; }
 
-        /// <summary> Идентификатор scope </summary>
+        /// <summary> Scope identifier </summary>
         public Guid ScopeId { get; set; }
     }
 }

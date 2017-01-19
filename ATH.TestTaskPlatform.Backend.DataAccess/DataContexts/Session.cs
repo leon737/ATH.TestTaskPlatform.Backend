@@ -14,7 +14,7 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.DataContexts
             _context = context;
         }
 
-        /// <summary> Сохраняет изменения в хранилище данных </summary>
+        /// <summary> Saves changes into data storage </summary>
         public Result<Unit> SaveChanges()
         {
             _context.SaveChanges();

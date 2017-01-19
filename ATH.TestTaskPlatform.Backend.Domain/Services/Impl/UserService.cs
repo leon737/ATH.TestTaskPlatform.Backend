@@ -7,6 +7,9 @@ using Functional.Fluent.Extensions;
 
 namespace ATH.TestTaskPlatform.Backend.Domain.Services.Impl
 {
+    /// <summary>
+    /// Service for processing objects of type <see cref="User"/>
+    /// </summary>
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
@@ -16,7 +19,7 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Services.Impl
             _userRepository = userRepository;
         }
 
-        /// <summary> Возвращает список всех исполнителей </summary>
+        /// <summary> Returns the list of all executors, <seealso cref="User"/> </summary>
         public IReadOnlyList<User> GetAll(Guid scopeId) => _userRepository.GetAll().Where(x => x.ScopeId == scopeId).AsReadOnlyList();
     }
 }

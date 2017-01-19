@@ -9,16 +9,16 @@ using Functional.Fluent.Helpers;
 
 namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
 {
-    /// <summary> Репозиторий <see cref="User"/> </summary>
+    /// <summary> The repository <see cref="User"/> </summary>
     public class UserRepository : RepositoryBase, IUserRepository
     {
-        /// <summary> Репозиторий <see cref="User"/> </summary>
+        /// <summary> The repository <see cref="User"/> </summary>
         public UserRepository(DataContext context) : base(context) { }
 
-        /// <summary> Возвращает <see cref="User"/> по идентификатору </summary>
+        /// <summary> Gets <see cref="User"/> by identitifer </summary>
         public Result<User> ById(Guid userId) => Result.SuccessIfNotNull(Context.Users.Find(userId));
 
-        /// <summary> Возвращает список <see cref="User"/> </summary>
+        /// <summary> Returns the list of <see cref="User"/> </summary>
         public IReadOnlyList<User> GetAll() => Context.Users.AsReadOnlyList();
     }
 }

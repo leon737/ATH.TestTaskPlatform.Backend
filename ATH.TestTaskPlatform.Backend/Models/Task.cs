@@ -3,25 +3,25 @@ using ATH.TestTaskPlatform.Backend.Domain.Models;
 
 namespace ATH.TestTaskPlatform.Backend.Models
 {
-    /// <summary> Задача на scrum доске </summary>
+    /// <summary> Scrum board's task </summary>
     public class Task
     {
-        /// <summary> Идентификатор </summary>
+        /// <summary> Identifier of the task </summary>
         public Guid Id { get; set; }
 
-        /// <summary> Наименование </summary>
+        /// <summary> Name of the task </summary>
         public string Name { get; set; }
 
-        /// <summary> Описание задачи </summary>
+        /// <summary> Description of the task </summary>
         public string Description { get; set; }
 
-        /// <summary> Трудозатраты </summary>
+        /// <summary> Expected worload </summary>
         public int Workload { get; set; }
 
-        /// <summary> Статус <see cref="TaskStatuses"/> </summary>
+        /// <summary> Status of the task, <see cref="TaskStatuses"/> </summary>
         public int Status { get; set; }
 
-        /// <summary> Идентификатор исполнителя </summary>
+        /// <summary> Identifier of the task's executor </summary>
         public Guid? ExecutorId { get; set; }
     }
 }

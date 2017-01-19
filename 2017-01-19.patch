@@ -1,0 +1,734 @@
+From 21961dc1e1872b881c813fa22de5e543cde3ff6c Mon Sep 17 00:00:00 2001
+From: Leonid Gordo <LGordo@ath.ru>
+Date: Fri, 13 Jan 2017 09:55:11 +0300
+Subject: [PATCH] =?UTF-8?q?=D1=80=D0=B0=D0=B7=D0=BD=D0=BE=D0=B5?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../ATH.TestTaskPlatform.Backend.DataAccess.csproj |  1 +
+ .../DataContexts/Session.cs                        | 24 +++++++++
+ .../Repositories/TaskRepository.cs                 | 15 ++++--
+ .../ATH.TestTaskPlatform.Backend.Domain.csproj     |  1 +
+ .../Contexts/ISession.cs                           | 12 +++++
+ ATH.TestTaskPlatform.Backend.Domain/Models/Task.cs |  2 +-
+ .../Services/Impl/TaskService.cs                   | 23 +++++++--
+ .../ATH.TestTaskPlatform.Backend.WebApi.csproj     |  9 ++++
+ .../App_Start/WebApiAutomapperProfile.cs           | 17 +++++++
+ .../App_Start/WebApiModule.cs                      | 35 +++++++++----
+ .../Controllers/TasksController.cs                 | 36 ++++++++++----
+ .../Controllers/UsersController.cs                 | 11 ++--
+ .../Filters/PhantomErrorException.cs               |  8 +++
+ .../Filters/ScopeFilterAttribute.cs                | 58 ++++++++++++++++++++++
+ ATH.TestTaskPlatform.Backend/Global.asax.cs        |  1 +
+ ATH.TestTaskPlatform.Backend/Models/Task.cs        | 27 ++++++++++
+ ATH.TestTaskPlatform.Backend/Models/User.cs        | 16 ++++++
+ ATH.TestTaskPlatform.Backend/Web.config            |  2 +-
+ ATH.TestTaskPlatform.Backend/packages.config       |  1 +
+ database-mssql.sql                                 | 41 +++++++++++++++
+ database.sql => database-postgresql.sql            |  0
+ testdata.sql                                       | 24 +++++++++
+ 22 files changed, 332 insertions(+), 32 deletions(-)
+ create mode 100644 ATH.TestTaskPlatform.Backend.DataAccess/DataContexts/Session.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend.Domain/Contexts/ISession.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend/App_Start/WebApiAutomapperProfile.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend/Filters/PhantomErrorException.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend/Filters/ScopeFilterAttribute.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend/Models/Task.cs
+ create mode 100644 ATH.TestTaskPlatform.Backend/Models/User.cs
+ create mode 100644 database-mssql.sql
+ rename database.sql => database-postgresql.sql (100%)
+ create mode 100644 testdata.sql
+
+diff --git a/ATH.TestTaskPlatform.Backend.DataAccess/ATH.TestTaskPlatform.Backend.DataAccess.csproj b/ATH.TestTaskPlatform.Backend.DataAccess/ATH.TestTaskPlatform.Backend.DataAccess.csproj
+index c070144..170b0ff 100644
+--- a/ATH.TestTaskPlatform.Backend.DataAccess/ATH.TestTaskPlatform.Backend.DataAccess.csproj
++++ b/ATH.TestTaskPlatform.Backend.DataAccess/ATH.TestTaskPlatform.Backend.DataAccess.csproj
+@@ -58,6 +58,7 @@
+   </ItemGroup>
+   <ItemGroup>
+     <Compile Include="DataContexts\DataContext.cs" />
++    <Compile Include="DataContexts\Session.cs" />
+     <Compile Include="Mappings\TaskMapping.cs" />
+     <Compile Include="Mappings\UserMapping.cs" />
+     <Compile Include="Mappings\ScopeMapping.cs" />
+diff --git a/ATH.TestTaskPlatform.Backend.DataAccess/DataContexts/Session.cs b/ATH.TestTaskPlatform.Backend.DataAccess/DataContexts/Session.cs
+new file mode 100644
+index 0000000..c569674
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend.DataAccess/DataContexts/Session.cs
+@@ -0,0 +1,24 @@
++п»їusing ATH.TestTaskPlatform.Backend.Domain.Contexts;
++using Functional.Fluent;
++using Functional.Fluent.Helpers;
++using Functional.Fluent.MonadicTypes;
++
++namespace ATH.TestTaskPlatform.Backend.DataAccess.DataContexts
++{
++    public class Session : ISession
++    {
++        private readonly DataContext _context;
++
++        public Session(DataContext context)
++        {
++            _context = context;
++        }
++
++        /// <summary> РЎРѕС…СЂР°РЅСЏРµС‚ РёР·РјРµРЅРµРЅРёСЏ РІ С…СЂР°РЅРёР»РёС‰Рµ РґР°РЅРЅС‹С… </summary>
++        public Result<Unit> SaveChanges()
++        {
++            _context.SaveChanges();
++            return Result.Success();
++        }
++    }
++}
+diff --git a/ATH.TestTaskPlatform.Backend.DataAccess/Repositories/TaskRepository.cs b/ATH.TestTaskPlatform.Backend.DataAccess/Repositories/TaskRepository.cs
+index ead7cc7..c012b41 100644
+--- a/ATH.TestTaskPlatform.Backend.DataAccess/Repositories/TaskRepository.cs
++++ b/ATH.TestTaskPlatform.Backend.DataAccess/Repositories/TaskRepository.cs
+@@ -1,9 +1,11 @@
+ п»їusing System;
+ using System.Collections.Generic;
++using System.Data.Entity;
+ using System.Linq;
+ using ATH.TestTaskPlatform.Backend.DataAccess.DataContexts;
+ using ATH.TestTaskPlatform.Backend.Domain.Models;
+ using ATH.TestTaskPlatform.Backend.Domain.Repositories;
++using AutoMapper;
+ using Functional.Fluent;
+ using Functional.Fluent.Extensions;
+ using Functional.Fluent.MonadicTypes;
+@@ -14,8 +16,14 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
+     /// <summary> Р РµРїРѕР·РёС‚РѕСЂРёР№ <see cref="Task"/> </summary>
+     public class TaskRepository : RepositoryBase, ITaskRepository
+     {
++
++        private readonly IMapper _mapper;
++
+         /// <summary> Р РµРїРѕР·РёС‚РѕСЂРёР№ <see cref="Task"/> </summary>
+-        public TaskRepository(DataContext context) : base(context) { }
++        public TaskRepository(DataContext context, IMapper mapper) : base(context)
++        {
++            _mapper = mapper;
++        }
+ 
+         /// <summary> Р’РѕР·РІСЂР°С‰Р°РµС‚ <see cref="Task"/> РїРѕ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂСѓ </summary>
+         public Result<Task> ById(Guid taskId) => Result.SuccessIfNotNull(Context.Tasks.Find(taskId));
+@@ -27,8 +35,7 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
+         public IReadOnlyList<Task> ByExecutor(Guid? executorId) => Context.Tasks.Where(x => x.ExecutorId == executorId).AsReadOnlyList();
+ 
+         /// <summary> РЈРґР°Р»СЏРµС‚ <see cref="Task"/> </summary>
+-        public Result<Unit> Delete(Guid taskId) => 
+-            ById(taskId).Success(t =>
++        public Result<Unit> Delete(Guid taskId) => ById(taskId).Success(t =>
+         {
+             Context.Tasks.Remove(t);
+             return Result.Success();
+@@ -37,7 +44,7 @@ namespace ATH.TestTaskPlatform.Backend.DataAccess.Repositories
+         /// <summary> РћР±РЅРѕРІР»СЏРµС‚ <see cref="Task"/> </summary>
+         public Result<Unit> Update(Task task) => ById(task.Id).Success(t =>
+         {
+-            Context.Tasks.Attach(task);
++            _mapper.Map(task, t);
+             return Result.Success();
+         });
+ 
+diff --git a/ATH.TestTaskPlatform.Backend.Domain/ATH.TestTaskPlatform.Backend.Domain.csproj b/ATH.TestTaskPlatform.Backend.Domain/ATH.TestTaskPlatform.Backend.Domain.csproj
+index 39243df..e919d66 100644
+--- a/ATH.TestTaskPlatform.Backend.Domain/ATH.TestTaskPlatform.Backend.Domain.csproj
++++ b/ATH.TestTaskPlatform.Backend.Domain/ATH.TestTaskPlatform.Backend.Domain.csproj
+@@ -44,6 +44,7 @@
+     <Reference Include="System.Xml" />
+   </ItemGroup>
+   <ItemGroup>
++    <Compile Include="Contexts\ISession.cs" />
+     <Compile Include="Models\Scope.cs" />
+     <Compile Include="Models\Task.cs" />
+     <Compile Include="Models\TaskStatuses.cs" />
+diff --git a/ATH.TestTaskPlatform.Backend.Domain/Contexts/ISession.cs b/ATH.TestTaskPlatform.Backend.Domain/Contexts/ISession.cs
+new file mode 100644
+index 0000000..81566eb
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend.Domain/Contexts/ISession.cs
+@@ -0,0 +1,12 @@
++п»їusing Functional.Fluent;
++using Functional.Fluent.Helpers;
++using Functional.Fluent.MonadicTypes;
++
++namespace ATH.TestTaskPlatform.Backend.Domain.Contexts
++{
++    public interface ISession
++    {
++        /// <summary> РЎРѕС…СЂР°РЅСЏРµС‚ РёР·РјРµРЅРµРЅРёСЏ РІ С…СЂР°РЅРёР»РёС‰Рµ РґР°РЅРЅС‹С… </summary>
++        Result<Unit> SaveChanges();
++    }
++}
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend.Domain/Models/Task.cs b/ATH.TestTaskPlatform.Backend.Domain/Models/Task.cs
+index 94b86ca..695b6c3 100644
+--- a/ATH.TestTaskPlatform.Backend.Domain/Models/Task.cs
++++ b/ATH.TestTaskPlatform.Backend.Domain/Models/Task.cs
+@@ -12,7 +12,7 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Models
+         public string Name { get; set; }
+ 
+         /// <summary> РћРїРёСЃР°РЅРёРµ Р·Р°РґР°С‡Рё </summary>
+-        public string Descriprtion { get; set; }
++        public string Description { get; set; }
+ 
+         /// <summary> РўСЂСѓРґРѕР·Р°С‚СЂР°С‚С‹ </summary>
+         public int Workload { get; set; }
+diff --git a/ATH.TestTaskPlatform.Backend.Domain/Services/Impl/TaskService.cs b/ATH.TestTaskPlatform.Backend.Domain/Services/Impl/TaskService.cs
+index 6fddca9..4de4fe6 100644
+--- a/ATH.TestTaskPlatform.Backend.Domain/Services/Impl/TaskService.cs
++++ b/ATH.TestTaskPlatform.Backend.Domain/Services/Impl/TaskService.cs
+@@ -1,6 +1,7 @@
+ п»їusing System;
+ using System.Collections.Generic;
+ using System.Linq;
++using ATH.TestTaskPlatform.Backend.Domain.Contexts;
+ using ATH.TestTaskPlatform.Backend.Domain.Models;
+ using ATH.TestTaskPlatform.Backend.Domain.Repositories;
+ using Functional.Fluent;
+@@ -13,10 +14,12 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Services.Impl
+     public class TaskService : ITaskService
+     {
+         private readonly ITaskRepository _taskRepository;
++        private readonly ISession _session;
+ 
+-        public TaskService(ITaskRepository taskRepository)
++        public TaskService(ITaskRepository taskRepository, ISession session)
+         {
+             _taskRepository = taskRepository;
++            _session = session;
+         }
+ 
+         /// <summary> Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє <see cref="Task"/> РїРѕ СЃС‚Р°С‚СѓСЃСѓ </summary>
+@@ -31,12 +34,24 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Services.Impl
+         public Result<Task> ById(Guid taskId, Guid scopeId) => _taskRepository.ById(taskId).Success(t => t.ScopeId == scopeId ? Result.Success(t) : Result.Fail<Task>());
+ 
+         /// <summary> РЈРґР°Р»СЏРµС‚ <see cref="Task"/> </summary>
+-        public Result<Unit> Delete(Guid taskId, Guid scopeId) => _taskRepository.ById(taskId).Success(t => t.ScopeId == scopeId ? _taskRepository.Delete(t.Id) : Result.Fail<Unit>());
++        public Result<Unit> Delete(Guid taskId, Guid scopeId) => _taskRepository.ById(taskId).Success(t =>
++            t.Match()
++                .With(x => x.ScopeId == scopeId, _taskRepository.Delete(t.Id))
++                .Else(Result.Fail<Unit>())
++                .Do()
++                .PureSuccess(_session.SaveChanges())
++            );
+ 
+         /// <summary> РћР±РЅРѕРІР»СЏРµС‚ <see cref="Task"/> </summary>
+-        public Result<Unit> Update(Task task) =>_taskRepository.ById(task.Id).Success(t => t.ScopeId == task.ScopeId? _taskRepository.Update(t) : Result.Fail<Unit>());
++        public Result<Unit> Update(Task task) => _taskRepository.ById(task.Id).Success(t =>
++            t.Match()
++                .With(x => x.ScopeId == task.ScopeId, _taskRepository.Update(task))
++                .Else(Result.Fail<Unit>())
++                .Do()
++                .PureSuccess(_session.SaveChanges())
++            );
+ 
+         /// <summary> РЎРѕР·РґР°РµС‚ <see cref="Task"/> </summary>
+-        public Result<Unit> Create(Task task) => _taskRepository.Create(task);
++        public Result<Unit> Create(Task task) => _taskRepository.Create(task).PureSuccess(_session.SaveChanges());
+     }
+ }
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend/ATH.TestTaskPlatform.Backend.WebApi.csproj b/ATH.TestTaskPlatform.Backend/ATH.TestTaskPlatform.Backend.WebApi.csproj
+index 907666f..5121198 100644
+--- a/ATH.TestTaskPlatform.Backend/ATH.TestTaskPlatform.Backend.WebApi.csproj
++++ b/ATH.TestTaskPlatform.Backend/ATH.TestTaskPlatform.Backend.WebApi.csproj
+@@ -52,6 +52,10 @@
+       <HintPath>..\packages\Autofac.WebApi2.4.0.1\lib\net45\Autofac.Integration.WebApi.dll</HintPath>
+       <Private>True</Private>
+     </Reference>
++    <Reference Include="AutoMapper, Version=5.2.0.0, Culture=neutral, PublicKeyToken=be96cd2c38ef1005, processorArchitecture=MSIL">
++      <HintPath>..\packages\AutoMapper.5.2.0\lib\net45\AutoMapper.dll</HintPath>
++      <Private>True</Private>
++    </Reference>
+     <Reference Include="Functional.Fluent, Version=1.3.2.41679, Culture=neutral, processorArchitecture=MSIL">
+       <HintPath>..\packages\Functional.Fluent.1.3.2-beta-5\lib\net45\Functional.Fluent.dll</HintPath>
+       <Private>True</Private>
+@@ -171,13 +175,18 @@
+   <ItemGroup>
+     <Compile Include="App_Start\FilterConfig.cs" />
+     <Compile Include="App_Start\RouteConfig.cs" />
++    <Compile Include="App_Start\WebApiAutomapperProfile.cs" />
+     <Compile Include="App_Start\WebApiConfig.cs" />
+     <Compile Include="App_Start\WebApiModule.cs" />
+     <Compile Include="Controllers\TasksController.cs" />
+     <Compile Include="Controllers\UsersController.cs" />
++    <Compile Include="Filters\PhantomErrorException.cs" />
++    <Compile Include="Filters\ScopeFilterAttribute.cs" />
+     <Compile Include="Global.asax.cs">
+       <DependentUpon>Global.asax</DependentUpon>
+     </Compile>
++    <Compile Include="Models\Task.cs" />
++    <Compile Include="Models\User.cs" />
+     <Compile Include="Properties\AssemblyInfo.cs" />
+     <Compile Include="Results\ChallengeResult.cs" />
+     <Compile Include="Startup.cs" />
+diff --git a/ATH.TestTaskPlatform.Backend/App_Start/WebApiAutomapperProfile.cs b/ATH.TestTaskPlatform.Backend/App_Start/WebApiAutomapperProfile.cs
+new file mode 100644
+index 0000000..3afff92
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend/App_Start/WebApiAutomapperProfile.cs
+@@ -0,0 +1,17 @@
++п»їusing ATH.TestTaskPlatform.Backend.Domain.Models;
++using AutoMapper;
++
++namespace ATH.TestTaskPlatform.Backend
++{
++    public class WebApiAutomapperProfile : Profile
++    {
++        public WebApiAutomapperProfile()
++        {
++            CreateMap<User, Models.User>();
++            CreateMap<Models.User, User>();
++            CreateMap<Task, Task>();
++            CreateMap<Task, Models.Task>();
++            CreateMap<Models.Task, Task>();
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend/App_Start/WebApiModule.cs b/ATH.TestTaskPlatform.Backend/App_Start/WebApiModule.cs
+index f86e26e..b68cad7 100644
+--- a/ATH.TestTaskPlatform.Backend/App_Start/WebApiModule.cs
++++ b/ATH.TestTaskPlatform.Backend/App_Start/WebApiModule.cs
+@@ -1,13 +1,12 @@
+-п»їusing System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Web;
+-using ATH.TestTaskPlatform.Backend.DataAccess.DataContexts;
++п»їusing ATH.TestTaskPlatform.Backend.DataAccess.DataContexts;
+ using ATH.TestTaskPlatform.Backend.DataAccess.Repositories;
++using ATH.TestTaskPlatform.Backend.Domain.Contexts;
+ using ATH.TestTaskPlatform.Backend.Domain.Repositories;
+ using ATH.TestTaskPlatform.Backend.Domain.Services;
+ using ATH.TestTaskPlatform.Backend.Domain.Services.Impl;
+ using Autofac;
++using Autofac.Integration.WebApi;
++using AutoMapper;
+ 
+ namespace ATH.TestTaskPlatform.Backend.App_Start
+ {
+@@ -15,15 +14,33 @@ namespace ATH.TestTaskPlatform.Backend.App_Start
+     {
+         protected override void Load(ContainerBuilder builder)
+         {
+-            builder.RegisterType<DataContext>().AsSelf();
++            builder.RegisterType<DataContext>().AsSelf().InstancePerLifetimeScope();
++            builder.RegisterType<Session>().As<ISession>().InstancePerLifetimeScope();
+ 
+-            builder.RegisterType<ScopeRepository>().As<IScopeRepository>();
+-            builder.RegisterType<UserRepository>().As<IUserRepository>();
+-            builder.RegisterType<TaskRepository>().As<ITaskRepository>();
++            builder.RegisterType<ScopeRepository>().As<IScopeRepository>().InstancePerLifetimeScope();
++            builder.RegisterType<UserRepository>().As<IUserRepository>().InstancePerLifetimeScope();
++            builder.RegisterType<TaskRepository>().As<ITaskRepository>().InstancePerLifetimeScope();
+ 
+             builder.RegisterType<ScopeService>().As<IScopeService>();
+             builder.RegisterType<UserService>().As<IUserService>();
+             builder.RegisterType<TaskService>().As<ITaskService>();
++
++            builder.RegisterType<WebApiAutomapperProfile>().As<Profile>();
++
++            builder.Register(c =>
++            {
++                var profiles = c.Resolve<Profile[]>();
++
++                return new MapperConfiguration(cfg =>
++                {
++                    foreach (var profile in profiles)
++                    {
++                        cfg.AddProfile(profile);
++                    }
++                });
++            }).AsSelf();
++
++            builder.Register(c => c.Resolve<MapperConfiguration>().CreateMapper()).As<IMapper>();
+         }
+     }
+ }
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend/Controllers/TasksController.cs b/ATH.TestTaskPlatform.Backend/Controllers/TasksController.cs
+index 89ffcb4..9e749b9 100644
+--- a/ATH.TestTaskPlatform.Backend/Controllers/TasksController.cs
++++ b/ATH.TestTaskPlatform.Backend/Controllers/TasksController.cs
+@@ -3,52 +3,68 @@ using System.Collections.Generic;
+ using System.Web.Http;
+ using ATH.TestTaskPlatform.Backend.Domain.Models;
+ using ATH.TestTaskPlatform.Backend.Domain.Services;
++using ATH.TestTaskPlatform.Backend.Filters;
++using AutoMapper;
++using Functional.Fluent.Extensions;
++using Task = ATH.TestTaskPlatform.Backend.Models.Task;
+ 
+ namespace ATH.TestTaskPlatform.Backend.Controllers
+ {
++    [ScopeFilter]
+     [RoutePrefix("tasks")]
+     public class TasksController : ApiController
+     {
+         private readonly ITaskService _taskService;
++        private readonly IMapper _mapper;
+ 
+-        public TasksController(ITaskService taskService)
++        public TasksController(ITaskService taskService, IMapper mapper)
+         {
+             _taskService = taskService;
++            _mapper = mapper;
+         }
+ 
+         [HttpGet]
+         [Route("get/{scopeId}/{taskId}")]
+-        public Task GetByStatus(Guid scopeId, Guid taskId)
++        public Task GetById(Guid scopeId, Guid taskId)
+         {
+-            return _taskService.ById(taskId, scopeId);
++            return _mapper.Map<Domain.Models.Task, Task>(_taskService.ById(taskId, scopeId).Fail(() =>
++            {
++                throw new ArgumentException("Invalid task identifier");
++            }));
+         }
+ 
+         [HttpGet]
+         [Route("bystatus/{scopeId}/{status}")]
+         public IEnumerable<Task> GetByStatus(Guid scopeId, TaskStatuses status)
+         {
+-            return _taskService.ByStatus(status, scopeId);
++            return _mapper.Map<IEnumerable<Domain.Models.Task>, IEnumerable<Task>>(_taskService.ByStatus(status, scopeId));
+         }
+ 
+         [HttpGet]
+         [Route("byexecutor/{scopeId}/{executorId}")]
+         public IEnumerable<Task> GetByExecutor(Guid scopeId, Guid? executorId)
+         {
+-            return _taskService.ByExecutor(executorId, scopeId);
++            return _mapper.Map<IEnumerable<Domain.Models.Task>, IEnumerable<Task>>(_taskService.ByExecutor(executorId, scopeId));
+         }
+ 
+         //// POST api/tasks
+-        public void Post([FromBody]Task value)
++        [HttpPost]
++        [Route("{scopeId}")]
++        public void Post(Guid scopeId, [FromBody]Task value)
+         {
+-            var result = _taskService.Update(value);
++            var domain = _mapper.Map<Task, Domain.Models.Task>(value);
++            domain.ScopeId = scopeId;
++            var result = _taskService.Update(domain);
+             if (result.IsFailed)
+                 throw new AccessViolationException();
+         }
+-        
++
+         ///PUT api/tasks
+-        public void Put([FromBody]Task value)
++        public void Put(Guid scopeId, [FromBody]Task value)
+         {
+-            _taskService.Create(value);
++            var domain = _mapper.Map<Task, Domain.Models.Task>(value);
++            domain.ScopeId = scopeId;
++            _taskService.Create(domain);
+         }
+ 
+         /// DELETE api/users/5
+diff --git a/ATH.TestTaskPlatform.Backend/Controllers/UsersController.cs b/ATH.TestTaskPlatform.Backend/Controllers/UsersController.cs
+index e249583..7252f62 100644
+--- a/ATH.TestTaskPlatform.Backend/Controllers/UsersController.cs
++++ b/ATH.TestTaskPlatform.Backend/Controllers/UsersController.cs
+@@ -1,26 +1,31 @@
+ п»їusing System;
+ using System.Collections.Generic;
+ using System.Web.Http;
+-using ATH.TestTaskPlatform.Backend.Domain.Models;
+ using ATH.TestTaskPlatform.Backend.Domain.Services;
++using ATH.TestTaskPlatform.Backend.Filters;
++using AutoMapper;
++using User = ATH.TestTaskPlatform.Backend.Models.User;
+ 
+ namespace ATH.TestTaskPlatform.Backend.Controllers
+ {
++    [ScopeFilter]
+     [RoutePrefix("users")]
+     public class UsersController : ApiController
+     {
+         private readonly IUserService _userService;
++        private readonly IMapper _mapper;
+ 
+-        public UsersController(IUserService userService)
++        public UsersController(IUserService userService, IMapper mapper)
+         {
+             _userService = userService;
++            _mapper = mapper;
+         }
+ 
+         [HttpGet]
+         [Route("get/{scopeId}")]
+         public IEnumerable<User> Get(Guid scopeId)
+         {
+-            return _userService.GetAll(scopeId);
++            return _mapper.Map<IEnumerable<Domain.Models.User>, IEnumerable<User>>(_userService.GetAll(scopeId));
+         }
+     }
+ }
+diff --git a/ATH.TestTaskPlatform.Backend/Filters/PhantomErrorException.cs b/ATH.TestTaskPlatform.Backend/Filters/PhantomErrorException.cs
+new file mode 100644
+index 0000000..b1e05b2
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend/Filters/PhantomErrorException.cs
+@@ -0,0 +1,8 @@
++п»їusing System;
++
++namespace ATH.TestTaskPlatform.Backend.Filters
++{
++    public class PhantomErrorException : Exception
++    {
++    }
++}
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend/Filters/ScopeFilterAttribute.cs b/ATH.TestTaskPlatform.Backend/Filters/ScopeFilterAttribute.cs
+new file mode 100644
+index 0000000..9176199
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend/Filters/ScopeFilterAttribute.cs
+@@ -0,0 +1,58 @@
++п»їusing System;
++using System.Net;
++using System.Net.Http;
++using System.Threading;
++using System.Threading.Tasks;
++using System.Web.Http.Controllers;
++using System.Web.Http.Filters;
++using ATH.TestTaskPlatform.Backend.Domain.Services;
++using Functional.Fluent.Extensions;
++using Functional.Fluent.Helpers;
++
++namespace ATH.TestTaskPlatform.Backend.Filters
++{
++    public class ScopeFilterAttribute : Attribute, IActionFilter
++    {
++        private IScopeService _scopeService;
++
++        public IScopeService ScopeService
++        {
++            get {  return _scopeService;}
++            set { _scopeService = value; }
++        }
++
++        public bool AllowMultiple { get; } = false;
++
++        public async Task<HttpResponseMessage> ExecuteActionFilterAsync(HttpActionContext actionContext, CancellationToken cancellationToken, Func<Task<HttpResponseMessage>> continuation)
++        {
++            var scopeId = (Guid) actionContext.ActionArguments["scopeId"];
++            var scope = _scopeService.ById(scopeId);
++            if (scope.IsFailed || !scope.Value.Active)
++                return new HttpResponseMessage(HttpStatusCode.Forbidden);
++
++            int delay = scope.PureSuccess(v =>
++            {
++                if (v.MinDelay != null && v.MaxDelay != null)
++                {
++                    return (int) (new Random().NextDouble()*(v.MaxDelay.Value - v.MinDelay.Value) + v.MinDelay.Value);
++                }
++                return 0;
++            }).PureFail(0);
++
++            if (delay > 0)
++                Thread.Sleep(delay);
++
++            scope.Success(v =>
++            {
++                if (v.PhantomError != null)
++                {
++                    if (new Random().NextDouble() < v.PhantomError.Value)
++                        throw new PhantomErrorException();
++                }
++                return Result.Success();
++            });
++
++            return await continuation();
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/ATH.TestTaskPlatform.Backend/Global.asax.cs b/ATH.TestTaskPlatform.Backend/Global.asax.cs
+index d661335..64d2836 100644
+--- a/ATH.TestTaskPlatform.Backend/Global.asax.cs
++++ b/ATH.TestTaskPlatform.Backend/Global.asax.cs
+@@ -30,6 +30,7 @@ namespace ATH.TestTaskPlatform.Backend
+             GlobalConfiguration.Configure(WebApiConfig.Register);
+             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+             RouteConfig.RegisterRoutes(RouteTable.Routes);
++            builder.RegisterWebApiFilterProvider(GlobalConfiguration.Configuration);
+ 
+             GlobalConfiguration.Configuration.Formatters.Remove(GlobalConfiguration.Configuration.Formatters.XmlFormatter);
+         }
+diff --git a/ATH.TestTaskPlatform.Backend/Models/Task.cs b/ATH.TestTaskPlatform.Backend/Models/Task.cs
+new file mode 100644
+index 0000000..8021e29
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend/Models/Task.cs
+@@ -0,0 +1,27 @@
++п»їusing System;
++using ATH.TestTaskPlatform.Backend.Domain.Models;
++
++namespace ATH.TestTaskPlatform.Backend.Models
++{
++    /// <summary> Р—Р°РґР°С‡Р° РЅР° scrum РґРѕСЃРєРµ </summary>
++    public class Task
++    {
++        /// <summary> РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ </summary>
++        public Guid Id { get; set; }
++
++        /// <summary> РќР°РёРјРµРЅРѕРІР°РЅРёРµ </summary>
++        public string Name { get; set; }
++
++        /// <summary> РћРїРёСЃР°РЅРёРµ Р·Р°РґР°С‡Рё </summary>
++        public string Description { get; set; }
++
++        /// <summary> РўСЂСѓРґРѕР·Р°С‚СЂР°С‚С‹ </summary>
++        public int Workload { get; set; }
++
++        /// <summary> РЎС‚Р°С‚СѓСЃ <see cref="TaskStatuses"/> </summary>
++        public int Status { get; set; }
++
++        /// <summary> РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РёСЃРїРѕР»РЅРёС‚РµР»СЏ </summary>
++        public Guid? ExecutorId { get; set; }
++    }
++}
+diff --git a/ATH.TestTaskPlatform.Backend/Models/User.cs b/ATH.TestTaskPlatform.Backend/Models/User.cs
+new file mode 100644
+index 0000000..87f55ad
+--- /dev/null
++++ b/ATH.TestTaskPlatform.Backend/Models/User.cs
+@@ -0,0 +1,16 @@
++п»їusing System;
++
++namespace ATH.TestTaskPlatform.Backend.Models
++{
++
++    /// <summary> РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅР° scrum РґРѕСЃРєРµ </summary>
++    public class User
++    {
++        /// <summary> РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ </summary>
++        public Guid Id { get; set; }
++        
++        /// <summary> РРјСЏ </summary>
++        public string Name { get; set; }
++        
++    }
++}
+diff --git a/ATH.TestTaskPlatform.Backend/Web.config b/ATH.TestTaskPlatform.Backend/Web.config
+index c4788fe..ab5d4a6 100644
+--- a/ATH.TestTaskPlatform.Backend/Web.config
++++ b/ATH.TestTaskPlatform.Backend/Web.config
+@@ -9,7 +9,7 @@
+     <section name="entityFramework" type="System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" requirePermission="false" />
+   </configSections>
+   <connectionStrings>
+-    <add name="DefaultConnection" connectionString="Data Source=(LocalDb)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\aspnet-ATH.TestTaskPlatform.Backend-20170112084806.mdf;Initial Catalog=aspnet-ATH.TestTaskPlatform.Backend-20170112084806;Integrated Security=True" providerName="System.Data.SqlClient" />
++    <add name="DataContext" connectionString="Data Source=(local)\sqlexpress2;Database=ATH.TestTaskPlatform.Backend;Integrated Security=True" providerName="System.Data.SqlClient" />
+   </connectionStrings>
+   <appSettings></appSettings>
+   <system.web>
+diff --git a/ATH.TestTaskPlatform.Backend/packages.config b/ATH.TestTaskPlatform.Backend/packages.config
+index ce2f629..d4a5878 100644
+--- a/ATH.TestTaskPlatform.Backend/packages.config
++++ b/ATH.TestTaskPlatform.Backend/packages.config
+@@ -2,6 +2,7 @@
+ <packages>
+   <package id="Autofac" version="4.2.1" targetFramework="net45" />
+   <package id="Autofac.WebApi2" version="4.0.1" targetFramework="net45" />
++  <package id="AutoMapper" version="5.2.0" targetFramework="net45" />
+   <package id="EntityFramework" version="6.1.3" targetFramework="net45" />
+   <package id="Functional.Fluent" version="1.3.2-beta-5" targetFramework="net45" />
+   <package id="Microsoft.AspNet.Identity.Core" version="2.2.1" targetFramework="net45" />
+diff --git a/database-mssql.sql b/database-mssql.sql
+new file mode 100644
+index 0000000..c479ddc
+--- /dev/null
++++ b/database-mssql.sql
+@@ -0,0 +1,41 @@
++-- Table: "Scope"
++
++-- DROP TABLE Scope;
++
++CREATE TABLE dbo.Scope
++(
++  Id uniqueidentifier NOT NULL,
++  Active bit NOT NULL,
++  MinDelay integer,
++  MaxDelay integer,
++  PhantomError double precision,
++  CONSTRAINT scope_pkey PRIMARY KEY (Id)
++);
++
++-- Table: User
++
++-- DROP TABLE [User];
++
++CREATE TABLE dbo.[User]
++(
++  Id uniqueidentifier NOT NULL,
++  Name character varying(100),
++  ScopeId uniqueidentifier NOT NULL,
++  CONSTRAINT User_pkey PRIMARY KEY (Id)
++);
++  
++-- Table: Task
++
++-- DROP TABLE Task;
++
++CREATE TABLE dbo.Task
++(
++  Id uniqueidentifier NOT NULL,
++  Name character varying(100) NOT NULL,
++  Description character varying(500) NOT NULL,
++  Workload integer NOT NULL,
++  Status integer NOT NULL,
++  ExecutorId uniqueidentifier,
++  ScopeId uniqueidentifier NOT NULL,
++  CONSTRAINT task_pkey PRIMARY KEY (Id)
++);
+\ No newline at end of file
+diff --git a/database.sql b/database-postgresql.sql
+similarity index 100%
+rename from database.sql
+rename to database-postgresql.sql
+diff --git a/testdata.sql b/testdata.sql
+new file mode 100644
+index 0000000..3167c49
+--- /dev/null
++++ b/testdata.sql
+@@ -0,0 +1,24 @@
++insert scope (id, active) values('16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA', 1)
++
++insert [user](id, name, scopeid)
++values 
++('028da07e-6a0c-4768-a8ba-1e92dd85c3ca', N'Леонтий Ковалёв', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('f3424c95-4c2b-4df2-a127-36a677bbb79c', N'Геннадий Бобров', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('2f5e3da7-334b-490f-b334-50a81a248e1d', N'Захар Дроздов', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('87be9dbb-6766-483d-bbec-67d94a210c24', N'Кузьма Бобров', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('DA5E8C51-5AEE-4E94-BB4A-D008976B9166', N'Сергей Белоусов', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('27212DDF-912D-420B-AC7E-873E0478E359', N'Сева Ершов', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('168B02E4-2441-420F-8328-FB3BEA57E391', N'Снежана Гуляева', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('58B05A19-9C4C-4DD6-92F5-9CA2E25AE64B', N'Нина Чиркина', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('6ABF7A67-B530-4361-B365-B40F1FBE946B', N'Диана Боженова', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('25210E33-0DB7-4969-A458-0038E010AEB4', N'Мария Куликова', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('EA366414-0753-4862-9158-DE7B525D6A1F', N'Василина Петрова', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA')
++
++insert task(id, name, description, workload, status, ExecutorId, scopeid)
++values
++('9C5D68A4-4A22-4A7E-AFCA-62147CA16CE5', 'Тестовая задача #1', 'Описание тестовой задачи #1', 8, 1, null, '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('199BEE24-A318-4769-923B-4D9FC3628C26', 'Тестовая задача #2', 'Описание тестовой задачи #2', 16, 2, '028da07e-6a0c-4768-a8ba-1e92dd85c3ca', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('14F902E7-E11C-449F-A0AF-93E4C8FC13D3', 'Тестовая задача #3', 'Описание тестовой задачи #3', 32, 3, '028da07e-6a0c-4768-a8ba-1e92dd85c3ca', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('EF68C1B1-E485-4718-B422-99BB5BA507F1', 'Тестовая задача #4', 'Описание тестовой задачи #4', 64, 1, '2f5e3da7-334b-490f-b334-50a81a248e1d', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('743EC9FC-596A-4FB4-AD39-E2D730BBD88F', 'Тестовая задача #5', 'Описание тестовой задачи #5', 128, 2, 'DA5E8C51-5AEE-4E94-BB4A-D008976B9166', '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA'),
++('C37E7866-411C-475D-BE14-B18E4019FD17', 'Тестовая задача #6', 'Описание тестовой задачи #6', 256, 3, null, '16E7EDB5-860F-4DA7-8B91-AA7FE8F102BA')
+\ No newline at end of file
+-- 
+2.10.2.windows.1
+

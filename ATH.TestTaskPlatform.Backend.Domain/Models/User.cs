@@ -3,16 +3,16 @@
 namespace ATH.TestTaskPlatform.Backend.Domain.Models
 {
 
-    /// <summary> Пользователь на scrum доске </summary>
+    /// <summary> Scrum board's user </summary>
     public class User
     {
-        /// <summary> Идентификатор </summary>
+        /// <summary> Identifier </summary>
         public Guid Id { get; set; }
         
-        /// <summary> Имя </summary>
+        /// <summary> Name </summary>
         public string Name { get; set; }
         
-        /// <summary> Идентификатор scope </summary>
+        /// <summary> Scope identifier </summary>
         public Guid ScopeId { get; set; }
     }
 }

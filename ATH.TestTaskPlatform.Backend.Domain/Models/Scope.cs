@@ -4,19 +4,19 @@ namespace ATH.TestTaskPlatform.Backend.Domain.Models
 {
     public class Scope
     {
-        /// <summary> Идентификатор scope </summary>
+        /// <summary> Identifier </summary>
         public Guid Id { get; set; }   
 
-        /// <summary> Флаг активности </summary>
+        /// <summary> Activity flag </summary>
         public bool Active { get; set; }
 
-        /// <summary> Если не NULL, то минимальная задержка ответа в мс </summary>
+        /// <summary> Minumum delay in ms, if not null </summary>
         public int? MinDelay { get; set; }
 
-        /// <summary> Если не NULL, то максимальная задержка ответа в мс </summary>
+        /// <summary> Maximum delay in ms, if not null </summary>
         public int? MaxDelay { get; set; }
 
-        /// <summary> Если не NULL, то вероятность выбрасывания фантомной 500-й ошибки [0 - 1) </summary>
+        /// <summary> THe probability of phantom error to be thrown [0-1), if not null </summary>
         public double? PhantomError { get; set; }
     }
 }

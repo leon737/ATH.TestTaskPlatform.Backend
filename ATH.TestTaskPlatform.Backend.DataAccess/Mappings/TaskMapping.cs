@@ -3,7 +3,7 @@ using ATH.TestTaskPlatform.Backend.Domain.Models;
 
 namespace ATH.TestTaskPlatform.Backend.DataAccess.Mappings
 {
-    /// <summary> Маппинг для <see cref="Task"/> </summary>
+    /// <summary> The mapping for <see cref="Task"/> </summary>
     public class TaskMapping : EntityTypeConfiguration<Task>
     {
         public TaskMapping()
